@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "84642657004",
+    "project_id": "iot-2025-eva2-miguel-isaac",
+    "storage_bucket": "iot-2025-eva2-miguel-isaac.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:84642657004:android:8db163d09da3978aff6bc9",
+        "android_client_info": {
+          "package_name": "com.example.agenda_de_estudiantes"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCaWdVl7DHuLq0dbF5sYEsre3KQA9qG40Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:84642657004:android:9ed1d84d7aa04354ff6bc9",
+        "android_client_info": {
+          "package_name": "com.example.miagendaestudiantes"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCaWdVl7DHuLq0dbF5sYEsre3KQA9qG40Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,20 +1,254 @@
 package com.example.miagendaestudiantes
 
+import android.content.Intent
 import android.os.Bundle
-import androidx.activity.enableEdgeToEdge
+import android.util.Log
+import android.widget.Button
+import android.widget.EditText
+import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 
 class MainActivity : AppCompatActivity() {
+
+    companion object {
+        private const val TAG = "MainActivity"
+    }
+
+    // Firebase
+    private lateinit var auth: FirebaseAuth
+    private lateinit var db: FirebaseFirestore
+
+    // Views
+    private lateinit var recyclerView: RecyclerView
+    private lateinit var todoEditText: EditText
+    private lateinit var addButton: Button
+    private lateinit var signOutButton: Button
+
+    // UI/State
+    private lateinit var todoAdapter: TodoAdapter
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        setContentView(R.layout.activity_main)
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
-            insets
+
+        auth = FirebaseAuth.getInstance()
+        db = FirebaseFirestore.getInstance()
+
+        // Si no hay usuario logeado, ir al login
+        if (auth.currentUser == null) {
+            navigateToLogin()
+            return
         }
+
+        setContentView(R.layout.activity_main)
+        initViews()
+        setupRecyclerView()
+        setupClickListeners()
+        loadTodos()  // primera carga
+
+        Log.d(TAG, "Usuario autenticado: ${auth.currentUser?.email}")
+    }
+
+    private fun initViews() {
+        recyclerView = findViewById(R.id.recyclerView)
+        todoEditText = findViewById(R.id.todoEditText)
+        addButton = findViewById(R.id.addButton)
+        signOutButton = findViewById(R.id.signOutButton)
+    }
+
+    private fun setupRecyclerView() {
+        recyclerView.layoutManager = LinearLayoutManager(this)
+
+        todoAdapter = TodoAdapter(
+            onTodoChecked = { todo, isChecked ->
+                updateTodoCompleted(todo, isChecked)
+            },
+            onEditClicked = { todo ->
+                editarTodo(todo)
+            },
+            onDisableClicked = { todo ->
+                deshabilitarTodo(todo)
+            },
+            onDeleteClicked = { todo ->
+                eliminarTodo(todo)
+            }
+        )
+
+        recyclerView.adapter = todoAdapter
+    }
+
+    private fun setupClickListeners() {
+        addButton.setOnClickListener { addNewTodo() }
+        signOutButton.setOnClickListener { signOut() }
+    }
+
+    private fun addNewTodo() {
+        val todoText = todoEditText.text.toString().trim()
+        if (todoText.isEmpty()) {
+            Toast.makeText(this, "Por favor ingresa una tarea", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val userId = auth.currentUser?.uid ?: return
+
+        val now = System.currentTimeMillis()   // 👈 fecha y hora actual
+
+        val todo = Todo(
+            id = "",
+            text = todoText,
+            completed = false,
+            userId = userId,
+            enabled = true,
+            createdAt = now
+        )
+
+        Log.d(TAG, "Agregando nuevo todo: $todoText")
+
+        db.collection("todos")
+            .add(todo)
+            .addOnSuccessListener {
+                todoEditText.text.clear()
+                Toast.makeText(this, "Tarea agregada", Toast.LENGTH_SHORT).show()
+                loadTodos()
+            }
+            .addOnFailureListener { e ->
+                Log.e(TAG, "Error al agregar todo", e)
+                Toast.makeText(this, "Error al agregar tarea: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+    }
+
+    private fun updateTodoCompleted(todo: Todo, isCompleted: Boolean) {
+        if (todo.id.isEmpty()) return
+
+        Log.d(TAG, "Actualizando todo ${todo.id}: completed=$isCompleted")
+
+        db.collection("todos")
+            .document(todo.id)
+            .update("completed", isCompleted)
+            .addOnFailureListener { e ->
+                Log.e(TAG, "Error al actualizar todo", e)
+                Toast.makeText(this, "Error al actualizar: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+    }
+
+    private fun loadTodos() {
+        val userId = auth.currentUser?.uid ?: return
+        Log.d(TAG, "Cargando todos para usuario: $userId")
+
+        db.collection("todos")
+            .whereEqualTo("userId", userId)
+            .get()
+            .addOnSuccessListener { snapshots ->
+                val todoList = snapshots.documents.mapNotNull { doc ->
+                    try {
+                        doc.toObject(Todo::class.java)?.copy(id = doc.id)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error al parsear documento ${doc.id}", e)
+                        null
+                    }
+                }
+
+                Log.d(TAG, "Todos cargados: ${todoList.size} items")
+                todoAdapter.updateTodos(todoList)
+
+                if (todoList.isEmpty()) {
+                    Toast.makeText(this, "No hay tareas. ¡Agrega una!", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .addOnFailureListener { e ->
+                Log.e(TAG, "Error al cargar todos", e)
+                Toast.makeText(this, "Error al cargar tareas: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+    }
+
+    // ========= FUNCIONES PARA EDITAR / DESHABILITAR / ELIMINAR =========
+
+    private fun editarTodo(todo: Todo) {
+        if (todo.id.isEmpty()) {
+            Toast.makeText(this, "No se puede editar: ID vacío", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val editText = EditText(this)
+        editText.setText(todo.text)
+
+        AlertDialog.Builder(this)
+            .setTitle("Editar tarea")
+            .setView(editText)
+            .setPositiveButton("Guardar") { _, _ ->
+                val nuevoTexto = editText.text.toString().trim()
+                if (nuevoTexto.isEmpty()) {
+                    Toast.makeText(this, "El texto no puede estar vacío", Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+
+                db.collection("todos")
+                    .document(todo.id)
+                    .update("text", nuevoTexto)
+                    .addOnSuccessListener { loadTodos() }
+                    .addOnFailureListener { e ->
+                        Log.e(TAG, "Error al editar tarea", e)
+                        Toast.makeText(this, "Error al editar: ${e.message}", Toast.LENGTH_SHORT).show()
+                    }
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
+
+    private fun deshabilitarTodo(todo: Todo) {
+        if (todo.id.isEmpty()) {
+            Toast.makeText(this, "No se puede deshabilitar: ID vacío", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val nuevoEstado = !todo.enabled  // si está habilitado, lo deshabilita; si está deshabilitado, lo habilita
+
+        db.collection("todos")
+            .document(todo.id)
+            .update("enabled", nuevoEstado)
+            .addOnSuccessListener { loadTodos() }
+            .addOnFailureListener { e ->
+                Log.e(TAG, "Error al cambiar estado enabled", e)
+                Toast.makeText(this, "Error al deshabilitar: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+    }
+
+    private fun eliminarTodo(todo: Todo) {
+        if (todo.id.isEmpty()) {
+            Toast.makeText(this, "No se puede eliminar: ID vacío", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle("Eliminar tarea")
+            .setMessage("¿Seguro que quieres eliminar esta tarea?")
+            .setPositiveButton("Eliminar") { _, _ ->
+                db.collection("todos")
+                    .document(todo.id)
+                    .delete()
+                    .addOnSuccessListener { loadTodos() }
+                    .addOnFailureListener { e ->
+                        Log.e(TAG, "Error al eliminar tarea", e)
+                        Toast.makeText(this, "Error al eliminar: ${e.message}", Toast.LENGTH_SHORT).show()
+                    }
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
+
+    // ========= CERRAR SESIÓN =========
+
+    private fun signOut() {
+        auth.signOut()
+        navigateToLogin()
+    }
+
+    private fun navigateToLogin() {
+        startActivity(Intent(this, LoginActivity::class.java))
+        finish()
     }
 }
