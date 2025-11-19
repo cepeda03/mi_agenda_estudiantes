@@ -38,7 +38,7 @@ class TodoAdapter(
     override fun onBindViewHolder(holder: TodoViewHolder, position: Int) {
         val currentTodo = todos[position]
 
-        // -------- FECHA (solo día/mes/año) ----------
+
         val fechaTexto = if (currentTodo.createdAt != 0L) {
             val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
             sdf.format(Date(currentTodo.createdAt))
@@ -46,14 +46,14 @@ class TodoAdapter(
             ""
         }
 
-        // Texto + fecha en 2 líneas
+
         holder.textView.text = if (fechaTexto.isNotEmpty()) {
             "${currentTodo.text}\n$fechaTexto"
         } else {
             currentTodo.text
         }
 
-        // -------- CHECKBOX (sin tachar texto) ----------
+
         holder.checkBox.setOnCheckedChangeListener(null)
         holder.checkBox.isChecked = currentTodo.completed
 
@@ -64,19 +64,19 @@ class TodoAdapter(
             }
         }
 
-        // -------- BOTONES ----------
-        // Editar
+
+
         holder.btnEditar.setOnClickListener {
             onEditClicked(currentTodo)
         }
 
-        // Deshabilitar / habilitar
+
         holder.btnDeshabilitar.text = if (currentTodo.enabled) "Off" else "On"
         holder.btnDeshabilitar.setOnClickListener {
             onDisableClicked(currentTodo)
         }
 
-        // Eliminar
+
         holder.btnEliminar.setOnClickListener {
             onDeleteClicked(currentTodo)
         }

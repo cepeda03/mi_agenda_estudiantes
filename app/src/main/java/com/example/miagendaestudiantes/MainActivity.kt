@@ -38,7 +38,7 @@ class MainActivity : AppCompatActivity() {
         auth = FirebaseAuth.getInstance()
         db = FirebaseFirestore.getInstance()
 
-        // Si no hay usuario logeado, ir al login
+
         if (auth.currentUser == null) {
             navigateToLogin()
             return
@@ -48,7 +48,7 @@ class MainActivity : AppCompatActivity() {
         initViews()
         setupRecyclerView()
         setupClickListeners()
-        loadTodos()  // primera carga
+        loadTodos()
 
         Log.d(TAG, "Usuario autenticado: ${auth.currentUser?.email}")
     }
@@ -95,7 +95,7 @@ class MainActivity : AppCompatActivity() {
 
         val userId = auth.currentUser?.uid ?: return
 
-        val now = System.currentTimeMillis()   // 👈 fecha y hora actual
+        val now = System.currentTimeMillis()
 
         val todo = Todo(
             id = "",
@@ -165,7 +165,7 @@ class MainActivity : AppCompatActivity() {
             }
     }
 
-    // ========= FUNCIONES PARA EDITAR / DESHABILITAR / ELIMINAR =========
+
 
     private fun editarTodo(todo: Todo) {
         if (todo.id.isEmpty()) {
@@ -240,7 +240,7 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
-    // ========= CERRAR SESIÓN =========
+
 
     private fun signOut() {
         auth.signOut()

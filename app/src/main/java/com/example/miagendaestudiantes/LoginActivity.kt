@@ -53,7 +53,7 @@ class LoginActivity : AppCompatActivity() {
             }
         }
 
-        // --------- REGISTRO ----------
+
         signUpButton.setOnClickListener {
             val email = emailEditText.text.toString()
             val password = passwordEditText.text.toString()
