@@ -35,7 +35,7 @@ class TodoAdapter(
         val currentTodo = todos[position]
 
 
-        val fechaTexto: String = currentTodo.finalDate  // String normal
+        val fechaTexto: String = currentTodo.finalDate
 
         holder.textView.text = if (fechaTexto.isNotEmpty()) {
 

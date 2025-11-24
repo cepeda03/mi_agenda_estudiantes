@@ -40,7 +40,7 @@ class MainActivity : AppCompatActivity() {
         auth = FirebaseAuth.getInstance()
         db = FirebaseFirestore.getInstance()
 
-        // Si no hay usuario logueado, ir al login
+
         if (auth.currentUser == null) {
             navigateToLogin()
             return
@@ -89,9 +89,7 @@ class MainActivity : AppCompatActivity() {
         signOutButton.setOnClickListener { signOut() }
     }
 
-    // ------------------------------------------------------------------------
-    // NUEVA TAREA: solo texto, sin fecha final (finalDate = "")
-    // ------------------------------------------------------------------------
+
     private fun addNewTodo() {
         val todoText = todoEditText.text.toString().trim()
         if (todoText.isEmpty()) {
@@ -109,7 +107,7 @@ class MainActivity : AppCompatActivity() {
             userId = userId,
             enabled = true,
             createdAt = now,
-            finalDate = ""            // 👈 sin fecha final al crear
+            finalDate = ""
         )
 
         Log.d(TAG, "Agregando nuevo todo: $todoText")
@@ -127,7 +125,7 @@ class MainActivity : AppCompatActivity() {
             }
     }
 
-    // sigue existiendo por si usas el campo completed en Firestore
+
     private fun updateTodoCompleted(todo: Todo, isCompleted: Boolean) {
         if (todo.id.isEmpty()) return
 
@@ -172,9 +170,7 @@ class MainActivity : AppCompatActivity() {
             }
     }
 
-    // ------------------------------------------------------------------------
-    // EDITAR: cambiar texto y elegir FECHA FINAL de la nota
-    // ------------------------------------------------------------------------
+    /
     private fun editarTodo(todo: Todo) {
         if (todo.id.isEmpty()) {
             Toast.makeText(this, "No se puede editar: ID vacío", Toast.LENGTH_SHORT).show()
@@ -194,7 +190,7 @@ class MainActivity : AppCompatActivity() {
                     return@setPositiveButton
                 }
 
-                // Después de editar el texto, elegimos la fecha final
+
                 mostrarDatePickerParaTodo(todo, nuevoTexto)
             }
             .setNegativeButton("Cancelar", null)
@@ -204,8 +200,7 @@ class MainActivity : AppCompatActivity() {
     private fun mostrarDatePickerParaTodo(todo: Todo, nuevoTexto: String) {
         val calendar = Calendar.getInstance()
 
-        // Si ya tenía finalDate y está en formato DD/MM/YYYY, podrías parsearla.
-        // Para simplificar, siempre partimos de la fecha de hoy.
+
         val year = calendar.get(Calendar.YEAR)
         val month = calendar.get(Calendar.MONTH)
         val day = calendar.get(Calendar.DAY_OF_MONTH)
