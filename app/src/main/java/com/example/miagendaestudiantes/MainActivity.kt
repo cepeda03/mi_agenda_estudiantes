@@ -170,7 +170,7 @@ class MainActivity : AppCompatActivity() {
             }
     }
 
-    /
+
     private fun editarTodo(todo: Todo) {
         if (todo.id.isEmpty()) {
             Toast.makeText(this, "No se puede editar: ID vacío", Toast.LENGTH_SHORT).show()
