@@ -7,12 +7,6 @@
     android:padding="8dp">
 
 
-    <CheckBox
-        android:id="@+id/checkBox"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content" />
-
-
     <TextView
         android:id="@+id/textView"
         android:layout_width="0dp"
@@ -23,7 +17,7 @@
         android:textColor="@android:color/black"
         android:text="Texto tarea" />
 
-    <!-- Botón Editar -->
+
     <Button
         android:id="@+id/btnEditar"
         android:layout_width="wrap_content"
