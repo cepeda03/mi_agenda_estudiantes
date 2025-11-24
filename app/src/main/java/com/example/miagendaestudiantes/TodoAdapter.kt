@@ -34,8 +34,16 @@ class TodoAdapter(
     override fun onBindViewHolder(holder: TodoViewHolder, position: Int) {
         val currentTodo = todos[position]
 
+      Todo (String)
+        val fechaTexto = currentTodo.finalDate ?: ""
 
-        holder.textView.text = currentTodo.text
+        holder.textView.text = if (fechaTexto.isNotEmpty()) {
+
+            "${currentTodo.text}\n$fechaTexto"
+        } else {
+
+            currentTodo.text
+        }
 
         holder.btnEditar.setOnClickListener {
             onEditClicked(currentTodo)

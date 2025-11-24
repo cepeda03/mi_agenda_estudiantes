@@ -1,5 +1,6 @@
 package com.example.miagendaestudiantes
 
+import android.app.DatePickerDialog
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
@@ -12,6 +13,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import java.util.Calendar
 
 class MainActivity : AppCompatActivity() {
 
@@ -38,7 +40,7 @@ class MainActivity : AppCompatActivity() {
         auth = FirebaseAuth.getInstance()
         db = FirebaseFirestore.getInstance()
 
-
+        // Si no hay usuario logueado, ir al login
         if (auth.currentUser == null) {
             navigateToLogin()
             return
@@ -65,6 +67,7 @@ class MainActivity : AppCompatActivity() {
 
         todoAdapter = TodoAdapter(
             onTodoChecked = { todo, isChecked ->
+                // Ya no hay checkbox en la UI, pero dejamos la función por compatibilidad
                 updateTodoCompleted(todo, isChecked)
             },
             onEditClicked = { todo ->
@@ -86,6 +89,9 @@ class MainActivity : AppCompatActivity() {
         signOutButton.setOnClickListener { signOut() }
     }
 
+    // ------------------------------------------------------------------------
+    // NUEVA TAREA: solo texto, sin fecha final (finalDate = "")
+    // ------------------------------------------------------------------------
     private fun addNewTodo() {
         val todoText = todoEditText.text.toString().trim()
         if (todoText.isEmpty()) {
@@ -94,7 +100,6 @@ class MainActivity : AppCompatActivity() {
         }
 
         val userId = auth.currentUser?.uid ?: return
-
         val now = System.currentTimeMillis()
 
         val todo = Todo(
@@ -103,7 +108,8 @@ class MainActivity : AppCompatActivity() {
             completed = false,
             userId = userId,
             enabled = true,
-            createdAt = now
+            createdAt = now,
+            finalDate = ""            // 👈 sin fecha final al crear
         )
 
         Log.d(TAG, "Agregando nuevo todo: $todoText")
@@ -121,6 +127,7 @@ class MainActivity : AppCompatActivity() {
             }
     }
 
+    // sigue existiendo por si usas el campo completed en Firestore
     private fun updateTodoCompleted(todo: Todo, isCompleted: Boolean) {
         if (todo.id.isEmpty()) return
 
@@ -165,8 +172,9 @@ class MainActivity : AppCompatActivity() {
             }
     }
 
-
-
+    // ------------------------------------------------------------------------
+    // EDITAR: cambiar texto y elegir FECHA FINAL de la nota
+    // ------------------------------------------------------------------------
     private fun editarTodo(todo: Todo) {
         if (todo.id.isEmpty()) {
             Toast.makeText(this, "No se puede editar: ID vacío", Toast.LENGTH_SHORT).show()
@@ -179,24 +187,49 @@ class MainActivity : AppCompatActivity() {
         AlertDialog.Builder(this)
             .setTitle("Editar tarea")
             .setView(editText)
-            .setPositiveButton("Guardar") { _, _ ->
+            .setPositiveButton("Siguiente") { _, _ ->
                 val nuevoTexto = editText.text.toString().trim()
                 if (nuevoTexto.isEmpty()) {
                     Toast.makeText(this, "El texto no puede estar vacío", Toast.LENGTH_SHORT).show()
                     return@setPositiveButton
                 }
 
-                db.collection("todos")
-                    .document(todo.id)
-                    .update("text", nuevoTexto)
-                    .addOnSuccessListener { loadTodos() }
-                    .addOnFailureListener { e ->
-                        Log.e(TAG, "Error al editar tarea", e)
-                        Toast.makeText(this, "Error al editar: ${e.message}", Toast.LENGTH_SHORT).show()
-                    }
+                // Después de editar el texto, elegimos la fecha final
+                mostrarDatePickerParaTodo(todo, nuevoTexto)
             }
             .setNegativeButton("Cancelar", null)
             .show()
+    }
+
+    private fun mostrarDatePickerParaTodo(todo: Todo, nuevoTexto: String) {
+        val calendar = Calendar.getInstance()
+
+        // Si ya tenía finalDate y está en formato DD/MM/YYYY, podrías parsearla.
+        // Para simplificar, siempre partimos de la fecha de hoy.
+        val year = calendar.get(Calendar.YEAR)
+        val month = calendar.get(Calendar.MONTH)
+        val day = calendar.get(Calendar.DAY_OF_MONTH)
+
+        DatePickerDialog(this, { _, y, m, d ->
+            val fechaSeleccionada = String.format("%02d/%02d/%04d", d, m + 1, y)
+
+            db.collection("todos")
+                .document(todo.id)
+                .update(
+                    mapOf(
+                        "text" to nuevoTexto,
+                        "finalDate" to fechaSeleccionada
+                    )
+                )
+                .addOnSuccessListener {
+                    loadTodos()
+                }
+                .addOnFailureListener { e ->
+                    Log.e(TAG, "Error al editar tarea", e)
+                    Toast.makeText(this, "Error al editar: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+
+        }, year, month, day).show()
     }
 
     private fun deshabilitarTodo(todo: Todo) {
@@ -239,8 +272,6 @@ class MainActivity : AppCompatActivity() {
             .setNegativeButton("Cancelar", null)
             .show()
     }
-
-
 
     private fun signOut() {
         auth.signOut()
